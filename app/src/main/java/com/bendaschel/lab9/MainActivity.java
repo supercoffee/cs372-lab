@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity
     private static final String EVENT_LOCATION_SERVICES_READY = "com.bendaschel.lab9.LOCATION_READY";
     private static final float ZOOM_LEVEL = 15.0f;
     private static final String KEY_LAST_CAMERA_STATE = "last_camera_state";
+    private static final String KEY_MAP_TYPE = "last_map_type";
     private FragmentManager mFragmentManager;
     private GoogleApiClient mGoogleApiClient;
     private GoogleMap mGoogleMap;
@@ -46,6 +47,7 @@ public class MainActivity extends AppCompatActivity
     private CameraPosition mLastCameraPosition;
     @Bind(R.id.layout_button_bar)
     LinearLayout mButtonBar;
+    private Bundle mSavedInstanceState;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,15 +59,12 @@ public class MainActivity extends AppCompatActivity
                 .setListener(this)
                 .awaitEvent(EVENT_MAP_READY)
                 .awaitEvent(EVENT_LOCATION_SERVICES_READY);
-        initMap();
+        initMap(savedInstanceState);
         initLocationServices();
     }
 
-    private void initMap() {
-        MapFragment mapFragment = MapFragment.newInstance();
-        FragmentTransaction fragmentTransaction = mFragmentManager.beginTransaction();
-        fragmentTransaction.add(R.id.fragment_container, mapFragment);
-        fragmentTransaction.commit();
+    private void initMap(Bundle savedInstanceState) {
+        MapFragment mapFragment = (MapFragment) mFragmentManager.findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
     }
 
@@ -95,12 +94,14 @@ public class MainActivity extends AppCompatActivity
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putParcelable(KEY_LAST_CAMERA_STATE, mLastCameraPosition);
+        outState.putInt(KEY_MAP_TYPE, mGoogleMap.getMapType());
     }
 
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
         mLastCameraPosition = savedInstanceState.getParcelable(KEY_LAST_CAMERA_STATE);
+        mSavedInstanceState = savedInstanceState;
     }
 
     @Override
@@ -110,7 +111,9 @@ public class MainActivity extends AppCompatActivity
                 == PackageManager.PERMISSION_GRANTED) {
             googleMap.setMyLocationEnabled(true);
         }
-        googleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+        if (mSavedInstanceState != null) {
+            googleMap.setMapType(mSavedInstanceState.getInt(KEY_MAP_TYPE));
+        }
         googleMap.getUiSettings().setZoomControlsEnabled(true);
         googleMap.setOnCameraChangeListener(this);
         mGoogleMap = googleMap;
