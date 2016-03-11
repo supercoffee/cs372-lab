@@ -1,16 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/fragment_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.bendaschel.lab9.MainActivity">
+    tools:context="com.bendaschel.lab9.MainActivity"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/layout_button_bar"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="invisible">
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/mark_map"
+            android:id="@+id/btn_mark"
+            android:layout_weight="1"/>
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/change_map_type"
+            android:id="@+id/btn_change_type"
+            android:layout_weight="1"/>
+    </LinearLayout>
 
     <fragment xmlns:android="http://schemas.android.com/apk/res/android"
               android:name="com.google.android.gms.maps.MapFragment"
               android:id="@+id/map"
               android:layout_width="match_parent"
-              android:layout_height="match_parent"/>
+              android:layout_height="0dp"
+            android:layout_weight="1"/>
 
-</RelativeLayout>
+</LinearLayout>

@@ -11,6 +11,8 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
+import android.widget.LinearLayout;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -22,6 +24,10 @@ import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+
+import butterknife.Bind;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
 
 
 public class MainActivity extends AppCompatActivity
@@ -38,12 +44,14 @@ public class MainActivity extends AppCompatActivity
     private GoogleMap mGoogleMap;
     private AwaitEvents mAwaitEvents;
     private CameraPosition mLastCameraPosition;
+    @Bind(R.id.layout_button_bar)
+    LinearLayout mButtonBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        ButterKnife.bind(this);
         mFragmentManager = getFragmentManager();
         mAwaitEvents = new AwaitEvents()
                 .setListener(this)
@@ -158,10 +166,36 @@ public class MainActivity extends AppCompatActivity
     public void onReady() {
         Log.d(TAG, "onReady: centering map on location");
         restoreCameraPosition();
+        mButtonBar.setVisibility(View.VISIBLE);
     }
 
     @Override
     public void onCameraChange(CameraPosition cameraPosition) {
         mLastCameraPosition = cameraPosition;
+    }
+
+    @OnClick(R.id.btn_mark)
+    public void markMap(View v) {
+
+    }
+
+    @OnClick(R.id.btn_change_type)
+    public void changeMapType(View v) {
+        int mapType = mGoogleMap.getMapType();
+        int nextMapType;
+        switch (mapType) {
+            case GoogleMap.MAP_TYPE_NORMAL:
+                nextMapType = GoogleMap.MAP_TYPE_SATELLITE;
+                break;
+            case GoogleMap.MAP_TYPE_SATELLITE:
+                nextMapType = GoogleMap.MAP_TYPE_TERRAIN;
+                break;
+            case GoogleMap.MAP_TYPE_TERRAIN:
+                nextMapType = GoogleMap.MAP_TYPE_NORMAL;
+                break;
+            default:
+                nextMapType = GoogleMap.MAP_TYPE_NORMAL;
+        }
+        mGoogleMap.setMapType(nextMapType);
     }
 }
