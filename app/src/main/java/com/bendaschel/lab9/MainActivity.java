@@ -20,21 +20,24 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 
 
 public class MainActivity extends AppCompatActivity
         implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener, AwaitEvents.Callback {
+        GoogleApiClient.OnConnectionFailedListener, AwaitEvents.Callback, GoogleMap.OnCameraChangeListener{
 
     private static final String TAG = "MainActivity";
     private static final String EVENT_MAP_READY = "com.bendaschel.lab9.MAP_READY";
     private static final String EVENT_LOCATION_SERVICES_READY = "com.bendaschel.lab9.LOCATION_READY";
     private static final float ZOOM_LEVEL = 15.0f;
+    private static final String KEY_LAST_CAMERA_STATE = "last_camera_state";
     private FragmentManager mFragmentManager;
     private GoogleApiClient mGoogleApiClient;
     private GoogleMap mGoogleMap;
     private AwaitEvents mAwaitEvents;
+    private CameraPosition mLastCameraPosition;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,6 +84,18 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putParcelable(KEY_LAST_CAMERA_STATE, mLastCameraPosition);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        mLastCameraPosition = savedInstanceState.getParcelable(KEY_LAST_CAMERA_STATE);
+    }
+
+    @Override
     public void onMapReady(GoogleMap googleMap) {
         Log.d(TAG, "onMapReady");
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -89,6 +104,7 @@ public class MainActivity extends AppCompatActivity
         }
         googleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
         googleMap.getUiSettings().setZoomControlsEnabled(true);
+        googleMap.setOnCameraChangeListener(this);
         mGoogleMap = googleMap;
         mAwaitEvents.fireEvent(EVENT_MAP_READY);
     }
@@ -109,6 +125,14 @@ public class MainActivity extends AppCompatActivity
         Log.d(TAG, "onConnectionFailed" + connectionResult.getErrorMessage());
     }
 
+    private void restoreCameraPosition() {
+        if (mLastCameraPosition != null) {
+            CameraUpdate lastPosition = CameraUpdateFactory.newCameraPosition(mLastCameraPosition);
+            mGoogleMap.moveCamera(lastPosition);
+            return;
+        }
+        centerCameraOnLocation();
+    }
     /**
      * Code taken from Google example
      * https://developer.android.com/training/location/retrieve-current.html
@@ -133,6 +157,11 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onReady() {
         Log.d(TAG, "onReady: centering map on location");
-        centerCameraOnLocation();
+        restoreCameraPosition();
+    }
+
+    @Override
+    public void onCameraChange(CameraPosition cameraPosition) {
+        mLastCameraPosition = cameraPosition;
     }
 }
