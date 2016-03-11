@@ -2,13 +2,14 @@ package com.bendaschel.lab9;
 
 import android.Manifest;
 import android.app.FragmentManager;
-import android.app.FragmentTransaction;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -24,6 +25,10 @@ import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -40,6 +45,7 @@ public class MainActivity extends AppCompatActivity
     private static final float ZOOM_LEVEL = 15.0f;
     private static final String KEY_LAST_CAMERA_STATE = "last_camera_state";
     private static final String KEY_MAP_TYPE = "last_map_type";
+    private static final String KEY_MARKERS = "map_markers";
     private FragmentManager mFragmentManager;
     private GoogleApiClient mGoogleApiClient;
     private GoogleMap mGoogleMap;
@@ -48,6 +54,8 @@ public class MainActivity extends AppCompatActivity
     @Bind(R.id.layout_button_bar)
     LinearLayout mButtonBar;
     private Bundle mSavedInstanceState;
+
+    ArrayList<LatLng> mMapMarkers = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,6 +103,7 @@ public class MainActivity extends AppCompatActivity
         super.onSaveInstanceState(outState);
         outState.putParcelable(KEY_LAST_CAMERA_STATE, mLastCameraPosition);
         outState.putInt(KEY_MAP_TYPE, mGoogleMap.getMapType());
+        outState.putParcelableArrayList(KEY_MARKERS, mMapMarkers);
     }
 
     @Override
@@ -104,11 +113,20 @@ public class MainActivity extends AppCompatActivity
         mSavedInstanceState = savedInstanceState;
     }
 
+    private void restoreMapMarkers(Bundle savedInstanceState) {
+        if (savedInstanceState != null && savedInstanceState.containsKey(KEY_MARKERS)) {
+            ArrayList<Parcelable> markers= savedInstanceState.getParcelableArrayList(KEY_MARKERS);
+            for (Parcelable marker: markers) {
+                createMarkerAtLocation((LatLng) marker);
+            }
+        }
+    }
+
     @Override
     public void onMapReady(GoogleMap googleMap) {
         Log.d(TAG, "onMapReady");
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
+        mGoogleMap = googleMap;
+        if (isLocationPermissionAllowed()) {
             googleMap.setMyLocationEnabled(true);
         }
         if (mSavedInstanceState != null) {
@@ -116,7 +134,7 @@ public class MainActivity extends AppCompatActivity
         }
         googleMap.getUiSettings().setZoomControlsEnabled(true);
         googleMap.setOnCameraChangeListener(this);
-        mGoogleMap = googleMap;
+        restoreMapMarkers(mSavedInstanceState);
         mAwaitEvents.fireEvent(EVENT_MAP_READY);
     }
 
@@ -144,22 +162,33 @@ public class MainActivity extends AppCompatActivity
         }
         centerCameraOnLocation();
     }
+
+    private boolean isLocationPermissionAllowed() {
+        return ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    @Nullable
+    private Location getLastKnownLocation() {
+        if (! isLocationPermissionAllowed()){
+            return null;
+        }
+        return LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+    }
     /**
      * Code taken from Google example
      * https://developer.android.com/training/location/retrieve-current.html
      */
     private void centerCameraOnLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-                        != PackageManager.PERMISSION_GRANTED) {
-            return;
+        Location lastLocation = getLastKnownLocation();
+        if (lastLocation != null){
+            LatLng newCameraPosition =
+                    new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude());
+            CameraUpdate update = CameraUpdateFactory.newLatLngZoom(newCameraPosition, ZOOM_LEVEL);
+            mGoogleMap.animateCamera(update);
         }
-        Location lastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        LatLng newCameraPosition =
-                new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude());
-        CameraUpdate update = CameraUpdateFactory.newLatLngZoom(newCameraPosition, ZOOM_LEVEL);
-        mGoogleMap.animateCamera(update);
     }
 
     /**
@@ -179,7 +208,24 @@ public class MainActivity extends AppCompatActivity
 
     @OnClick(R.id.btn_mark)
     public void markMap(View v) {
+        if (!isLocationPermissionAllowed()) {
+            return;
+        }
+        Location lastKnownLocation = getLastKnownLocation();
+        if (lastKnownLocation != null) {
+            LatLng markerPosition = new LatLng(lastKnownLocation.getLatitude(),
+                    lastKnownLocation.getLongitude());
+            createMarkerAtLocation(markerPosition);
+        }
+    }
 
+    private void createMarkerAtLocation(LatLng markerPosition) {
+        String markerTitle = Integer.toString(mMapMarkers.size());
+        MarkerOptions marker = new MarkerOptions()
+                .position(markerPosition)
+                .title(markerTitle);
+        mMapMarkers.add(markerPosition);
+        mGoogleMap.addMarker(marker);
     }
 
     @OnClick(R.id.btn_change_type)
