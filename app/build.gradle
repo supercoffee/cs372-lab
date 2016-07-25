@@ -33,3 +33,14 @@ dependencies {
     compile 'com.google.android.gms:play-services-location:8.4.0'
     compile 'com.jakewharton:butterknife:7.0.1'
 }
+
+task zipTask(type: Zip) {
+    baseName = 'bDaschelLab9'
+    rename 'app-debug.apk', "${baseName}.apk"
+    into baseName
+    from 'build/outputs/apk/app-debug.apk'
+    from 'README.md'
+    from ('src') {
+        into 'src'
+    }
+}
