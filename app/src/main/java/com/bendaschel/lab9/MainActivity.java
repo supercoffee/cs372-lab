@@ -5,7 +5,6 @@ import android.app.FragmentManager;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
-import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -15,6 +14,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
@@ -31,11 +31,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.util.ArrayList;
-import java.util.List;
 
-import butterknife.Bind;
-import butterknife.ButterKnife;
-import butterknife.OnClick;
 
 
 public class MainActivity extends AppCompatActivity
@@ -54,7 +50,6 @@ public class MainActivity extends AppCompatActivity
     private GoogleMap mGoogleMap;
     private AwaitEvents mAwaitEvents;
     private CameraPosition mLastCameraPosition;
-    @Bind(R.id.layout_button_bar)
     LinearLayout mButtonBar;
     private Bundle mSavedInstanceState;
 
@@ -64,7 +59,23 @@ public class MainActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        ButterKnife.bind(this);
+        mButtonBar = (LinearLayout) findViewById(R.id.layout_button_bar);
+        Button markButton = (Button) findViewById(R.id.btn_mark);
+        Button changeButton = (Button) findViewById(R.id.btn_change_type);
+
+        markButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                markMap(view);
+            }
+        });
+
+        changeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                changeMapType(view);
+            }
+        });
         mFragmentManager = getFragmentManager();
         mAwaitEvents = new AwaitEvents()
                 .setListener(this)
@@ -225,7 +236,7 @@ public class MainActivity extends AppCompatActivity
         mLastCameraPosition = cameraPosition;
     }
 
-    @OnClick(R.id.btn_mark)
+//    @OnClick(R.id.btn_mark)
     public void markMap(View v) {
         if (!isLocationPermissionAllowed()) {
             return;
@@ -247,7 +258,6 @@ public class MainActivity extends AppCompatActivity
         mGoogleMap.addMarker(marker);
     }
 
-    @OnClick(R.id.btn_change_type)
     public void changeMapType(View v) {
         int mapType = mGoogleMap.getMapType();
         int nextMapType;
